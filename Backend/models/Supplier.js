@@ -1,0 +1,17 @@
+// models/Supplier.js
+// A supplier the store buys stock from.
+
+const mongoose = require("mongoose");
+
+const supplierSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    contactPerson: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    email: { type: String, default: "" },
+    address: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Supplier", supplierSchema);
