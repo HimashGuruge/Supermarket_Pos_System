@@ -7,6 +7,10 @@ import { Users, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "react-toastify";
 import api, { errorMessage } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import Table from "../components/ui/Table";
 
 // The fields in the add/edit form. Starts empty for a new customer.
 function emptyForm() {
@@ -115,147 +119,113 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Search + add button row */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative sm:w-80">
-          <Search className="pointer-events-none absolute left-3 top-2.5 text-slate-400" size={18} />
-          <input
-            value={search}
+      <Card className="p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Input
+            icon={<Search size={18} />}
+            hint="Search name, phone, or email…"
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, phone, email…"
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            value={search}
+            className="sm:w-72"
           />
+          {canCreate && (
+            <Button iconLeft={<Plus size={16} />}>Add Customer</Button>
+          )}
         </div>
-        {canCreate && (
-          <button
-            onClick={startAdd}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-          >
-            <Plus size={16} /> Add Customer
-          </button>
-        )}
-      </div>
+      </Card>
 
       {/* Add / edit form card */}
       {form && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
-            <Users size={20} className="text-indigo-600" />
+        <Card className="p-5">
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-slate-800">
+            <Users size={18} className="text-indigo-600" />
             {form._editing ? "Edit Customer" : "New Customer"}
           </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Name *</span>
-              <input
-                value={form.name}
-                onChange={(e) => field("name", e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Phone</span>
-              <input
-                value={form.phone}
-                onChange={(e) => field("phone", e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Email</span>
-              <input
-                value={form.email}
-                onChange={(e) => field("email", e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              />
-            </label>
-            <label className="text-sm sm:col-span-2">
-              <span className="mb-1 block font-medium text-slate-600">Address</span>
-              <input
-                value={form.address}
-                onChange={(e) => field("address", e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              />
-            </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input
+              label="Name *"
+              icon={<Users size={18} />}
+              value={form.name}
+              onChange={(e) => field("name", e.target.value)}
+            />
+            <Input
+              label="Phone"
+              value={form.phone}
+              onChange={(e) => field("phone", e.target.value)}
+            />
+            <Input
+              label="Email"
+              value={form.email}
+              onChange={(e) => field("email", e.target.value)}
+            />
+            <Input
+              label="Address"
+              className="sm:col-span-2"
+              value={form.address}
+              onChange={(e) => field("address", e.target.value)}
+            />
           </div>
-          <div className="mt-5 flex gap-3">
-            <button
-              onClick={save}
-              disabled={saving}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-            >
+          <div className="mt-4 flex gap-2">
+            <Button onClick={save} disabled={saving}>
               {saving ? "Saving…" : form._editing ? "Save Changes" : "Add Customer"}
-            </button>
-            <button
-              onClick={closeForm}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-            >
+            </Button>
+            <Button variant="secondary" onClick={closeForm}>
               Cancel
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Customer table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-800">Customers</h2>
-        </div>
-
-        {loading ? (
-          <p className="px-6 py-6 text-sm text-slate-500">Loading customers…</p>
-        ) : error ? (
-          <p className="px-6 py-6 text-sm text-rose-600">Could not load customers: {error}</p>
-        ) : customers.length === 0 ? (
-          <p className="px-6 py-6 text-sm text-slate-500">No customers found.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-6 py-3">Name</th>
-                  <th className="px-6 py-3">Phone</th>
-                  <th className="px-6 py-3">Email</th>
-                  <th className="px-6 py-3">Address</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {customers.map((c) => (
-                  <tr key={c._id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 font-medium text-slate-700">{c.name}</td>
-                    <td className="px-6 py-4 text-slate-600">{c.phone || "—"}</td>
-                    <td className="px-6 py-4 text-slate-600">{c.email || "—"}</td>
-                    <td className="px-6 py-4 text-slate-600">{c.address || "—"}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        {canEdit && (
-                          <button
-                            onClick={() => startEdit(c)}
-                            className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
-                            title="Edit"
-                          >
-                            <Pencil size={15} /> Edit
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => remove(c)}
-                            className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700"
-                            title="Delete"
-                          >
-                            <Trash2 size={15} /> Delete
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Table
+        title="Customers"
+        rows={customers}
+        columns={[
+          {
+            key: "name",
+            header: "Name",
+            render: (c) => (
+              <span className="flex items-center gap-2">
+                <Users size={15} className="text-slate-400" />
+                {c.name}
+              </span>
+            ),
+          },
+          { key: "phone", header: "Phone", render: (c) => c.phone || "—" },
+          { key: "email", header: "Email", render: (c) => c.email || "—" },
+          { key: "address", header: "Address", render: (c) => c.address || "—" },
+          {
+            key: "actions",
+            header: "Actions",
+            align: "right",
+            render: (c) => (
+              <div className="flex justify-end gap-2">
+                {canEdit && (
+                  <button
+                    onClick={() => startEdit(c)}
+                    className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
+                    title="Edit"
+                  >
+                    <Pencil size={15} /> Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => remove(c)}
+                    className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700"
+                    title="Delete"
+                  >
+                    <Trash2 size={15} /> Delete
+                  </button>
+                )}
+              </div>
+            ),
+          },
+        ]}
+        emptyText="No customers found."
+      />
     </div>
   );
 }

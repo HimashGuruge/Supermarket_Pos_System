@@ -11,6 +11,12 @@ import { Package, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "react-toastify";
 import api, { errorMessage } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import Select from "../components/ui/Select";
+import Badge from "../components/ui/Badge";
+import Table from "../components/ui/Table";
 
 // Money string from the store currency, e.g. "LKR 56.00".
 function money(n, currency) {
@@ -20,12 +26,7 @@ function money(n, currency) {
   })}`;
 }
 
-// Stock badge color: green = fine, amber = low, red = out.
-function stockStyle(status) {
-  if (status === "In stock") return "bg-emerald-100 text-emerald-700";
-  if (status === "Low stock") return "bg-amber-100 text-amber-700";
-  return "bg-rose-100 text-rose-700";
-}
+// Map a stock status to a Badge tone: danger=Out, warning=Low, success=In.
 
 // Work out the stock badge from the numbers.
 // "Out of stock" at 0, "Low stock" at or below minStock, else "In stock".
@@ -33,6 +34,13 @@ function statusOf(p) {
   if (p.stock <= 0) return "Out of stock";
   if (p.stock <= p.minStock) return "Low stock";
   return "In stock";
+}
+
+// Map a stock status to a Badge tone: danger=Out, warning=Low, success=In.
+function stockTone(status) {
+  if (status === "Out of stock") return "danger";
+  if (status === "Low stock") return "warning";
+  return "success";
 }
 
 // The fields in the add/edit form. Starts empty for a new product.
@@ -212,211 +220,172 @@ export default function ProductsPage() {
     }
   }
 
-  // Shared input style for the form fields.
-  const inputCls =
-    "w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100";
-
+  // Form fields share the same rounded, indigo-focused Input style.
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Search + add button row */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative sm:w-80">
-          <Search className="pointer-events-none absolute left-3 top-2.5 text-slate-400" size={18} />
-          <input
-            value={search}
+      <Card className="p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Input
+            icon={<Search size={18} />}
+            hint="Search name, barcode, or SKU…"
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, barcode, SKU…"
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            value={search}
+            className="sm:w-72"
           />
+          {canCreate && (
+            <Button iconLeft={<Plus size={16} />}>Add Product</Button>
+          )}
         </div>
-        {canCreate && (
-          <button
-            onClick={startAdd}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-          >
-            <Plus size={16} /> Add Product
-          </button>
-        )}
-      </div>
+      </Card>
 
       {/* Add / edit form card */}
       {form && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
-            <Package size={20} className="text-indigo-600" />
+        <Card className="p-5">
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-slate-800">
+            <Package size={18} className="text-indigo-600" />
             {form._editing ? "Edit Product" : "New Product"}
           </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Name *</span>
-              <input
-                value={form.name}
-                onChange={(e) => field("name", e.target.value)}
-                className={inputCls}
-              />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Barcode *</span>
-              <input
-                value={form.barcode}
-                onChange={(e) => field("barcode", e.target.value)}
-                className={inputCls}
-              />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Category *</span>
-              <select
-                value={form.category}
-                onChange={(e) => field("category", e.target.value)}
-                className={inputCls}
-              >
-                <option value="">— pick a category —</option>
-                {categories.map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Purchase Price (cost) *</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.purchasePrice}
-                onChange={(e) => field("purchasePrice", e.target.value)}
-                className={inputCls}
-              />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Sale Price (shelf) *</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.salePrice}
-                onChange={(e) => field("salePrice", e.target.value)}
-                className={inputCls}
-              />
-            </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input
+              label="Name *"
+              icon={<Package size={18} />}
+              value={form.name}
+              onChange={(e) => field("name", e.target.value)}
+            />
+            <Input
+              label="Barcode *"
+              value={form.barcode}
+              onChange={(e) => field("barcode", e.target.value)}
+            />
+            <Select
+              label="Category *"
+              value={form.category}
+              onChange={(e) => field("category", e.target.value)}
+            >
+              <option value="">— pick a category —</option>
+              {categories.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+            <Input
+              label="Purchase Price (cost) *"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.purchasePrice}
+              onChange={(e) => field("purchasePrice", e.target.value)}
+            />
+            <Input
+              label="Sale Price (shelf) *"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.salePrice}
+              onChange={(e) => field("salePrice", e.target.value)}
+            />
             <div className="grid grid-cols-2 gap-4">
-              <label className="text-sm">
-                <span className="mb-1 block font-medium text-slate-600">Stock</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.stock}
-                  onChange={(e) => field("stock", e.target.value)}
-                  className={inputCls}
-                />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-medium text-slate-600">Min Stock</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.minStock}
-                  onChange={(e) => field("minStock", e.target.value)}
-                  className={inputCls}
-                />
-              </label>
+              <Input
+                label="Stock"
+                type="number"
+                min="0"
+                step="1"
+                value={form.stock}
+                onChange={(e) => field("stock", e.target.value)}
+              />
+              <Input
+                label="Min Stock"
+                type="number"
+                min="0"
+                step="1"
+                value={form.minStock}
+                onChange={(e) => field("minStock", e.target.value)}
+              />
             </div>
           </div>
-          <div className="mt-5 flex gap-3">
-            <button
-              onClick={save}
-              disabled={saving}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-            >
+          <div className="mt-4 flex gap-2">
+            <Button onClick={save} disabled={saving}>
               {saving ? "Saving…" : form._editing ? "Save Changes" : "Add Product"}
-            </button>
-            <button
-              onClick={closeForm}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-            >
+            </Button>
+            <Button variant="secondary" onClick={closeForm}>
               Cancel
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Product table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-800">Products</h2>
-        </div>
-
-        {loading ? (
-          <p className="px-6 py-6 text-sm text-slate-500">Loading products…</p>
-        ) : error ? (
-          <p className="px-6 py-6 text-sm text-rose-600">
-            Could not load products: {error}
-          </p>
-        ) : products.length === 0 ? (
-          <p className="px-6 py-6 text-sm text-slate-500">No products found.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-6 py-3">Product</th>
-                  <th className="px-6 py-3">Category</th>
-                  <th className="px-6 py-3 text-right">Price</th>
-                  <th className="px-6 py-3 text-right">Stock</th>
-                  <th className="px-6 py-3 text-right">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {products.map((p) => (
-                  <tr key={p._id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 font-medium text-slate-700">{p.name}</td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {p.category ? p.category.name : "—"}
-                    </td>
-                    <td className="px-6 py-4 text-right text-slate-600">
-                      {money(p.salePrice, currency)}
-                    </td>
-                    <td className="px-6 py-4 text-right text-slate-600">{p.stock}</td>
-                    <td className="px-6 py-4 text-right">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${stockStyle(statusOf(p))}`}
-                      >
-                        {statusOf(p)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        {canEdit && (
-                          <button
-                            onClick={() => startEdit(p)}
-                            className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
-                            title="Edit"
-                          >
-                            <Pencil size={15} /> Edit
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => remove(p)}
-                            className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700"
-                            title="Delete"
-                          >
-                            <Trash2 size={15} /> Delete
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Table
+        title="Products"
+        rows={products}
+        columns={[
+          {
+            key: "name",
+            header: "Product",
+            render: (p) => (
+              <span className="flex items-center gap-2">
+                <Package size={15} className="text-slate-400" />
+                {p.name}
+              </span>
+            ),
+          },
+          {
+            key: "category",
+            header: "Category",
+            render: (p) => (p.category ? p.category.name : "—"),
+          },
+          {
+            key: "salePrice",
+            header: "Price",
+            align: "right",
+            render: (p) => money(p.salePrice, currency),
+          },
+          {
+            key: "stock",
+            header: "Stock",
+            align: "right",
+            render: (p) => p.stock,
+          },
+          {
+            key: "status",
+            header: "Status",
+            align: "right",
+            render: (p) => (
+              <Badge tone={stockTone(statusOf(p))}>{statusOf(p)}</Badge>
+            ),
+          },
+          {
+            key: "actions",
+            header: "Actions",
+            align: "right",
+            render: (p) => (
+              <div className="flex justify-end gap-2">
+                {canEdit && (
+                  <button
+                    onClick={() => startEdit(p)}
+                    className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
+                    title="Edit"
+                  >
+                    <Pencil size={15} /> Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => remove(p)}
+                    className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700"
+                    title="Delete"
+                  >
+                    <Trash2 size={15} /> Delete
+                  </button>
+                )}
+              </div>
+            ),
+          },
+        ]}
+        emptyText="No products found."
+      />
     </div>
   );
 }

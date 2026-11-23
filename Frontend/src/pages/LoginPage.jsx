@@ -10,8 +10,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { Lock } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { errorMessage } from "../lib/api";
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -41,51 +44,42 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-center text-2xl font-bold text-slate-800">
-          Supermarket POS
-        </h1>
-        <p className="mt-1 text-center text-sm text-slate-500">
-          Sign in to continue
-        </p>
-
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@pos.com"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-              autoComplete="email"
-            />
+    <div className="flex min-h-screen items-center justify-center bg-app p-4">
+      <div className="w-full max-w-sm rounded-3xl border border-white/60 bg-card/80 p-8 shadow-card-lg backdrop-blur">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-card">
+            <Lock size={22} className="text-white" />
           </div>
+          <h1 className="mt-4 text-2xl font-bold text-slate-800">
+            Supermarket POS
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Sign in to continue
+          </p>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-              autoComplete="current-password"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <Input
+            label="Email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@pos.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
-          >
+          <Input
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <Button type="submit" loading={busy} className="w-full">
             {busy ? "Signing in…" : "Sign in"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -1,0 +1,9 @@
+# Build cache and output
+.vite/
+dist/
+
+# Node / dependency folders
+node_modules/
+
+# Logs
+*.log

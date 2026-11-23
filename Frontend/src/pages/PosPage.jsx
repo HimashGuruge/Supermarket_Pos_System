@@ -22,10 +22,12 @@ import {
   Trash2,
   ShoppingCart,
   Printer,
-  X,
 } from "lucide-react";
 import api, { errorMessage } from "../lib/api";
 import { printReceipt as printReceiptShared } from "../lib/printReceipt";
+import Modal from "../components/ui/Modal";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
 
 export default function PosPage() {
   // ---- Products -------------------------------------------------------
@@ -230,21 +232,21 @@ export default function PosPage() {
   // ---- Render ---------------------------------------------------------
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+      <div className="rounded-2xl border border-slate-200 bg-card p-6 text-sm text-slate-500 shadow-card">
         Loading POS…
       </div>
     );
   }
   if (pError) {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-card">
         Could not load products: {pError}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       {/* Hidden barcode scanner input. It is always focused, so a USB
           scanner works from anywhere on the page. */}
       <input
@@ -257,42 +259,41 @@ export default function PosPage() {
 
       {/* LEFT: search + product grid */}
       <div className="lg:col-span-2">
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-3 text-slate-400" size={18} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products by name, barcode, or SKU…"
-            className="w-full rounded-lg border border-slate-300 py-3 pl-10 pr-3 text-sm focus:border-blue-500 focus:outline-none"
-          />
+        <div className="mb-3">
+          <Input icon={<Search size={18} />} hint="Search by name, barcode, or SKU" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
 
         {visible.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
+          <div className="rounded-xl border border-slate-200 bg-card p-10 text-center text-sm text-slate-500 shadow-card">
             No products match "{query}".
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
             {visible.map((p) => {
               const low = p.stock <= p.minStock;
               return (
                 <button
                   key={p._id}
                   onClick={() => addToCart(p)}
-                  className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm"
+                  className="flex flex-col rounded-xl border border-slate-200 bg-card p-2.5 text-left shadow-card transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-card-lg"
                 >
                   <span className="line-clamp-2 text-sm font-medium text-slate-800">
                     {p.name}
                   </span>
-                  <span className="mt-1 text-base font-bold text-slate-900">
+                  <span className="mt-1.5 text-sm font-bold text-indigo-600">
                     {money(p.salePrice)}
                   </span>
-                  <span
-                    className={`mt-1 text-xs ${
-                      low ? "font-semibold text-rose-600" : "text-slate-400"
-                    }`}
-                  >
-                    {p.stock} in stock
+                  <span className="mt-1 flex items-center justify-between">
+                    <span
+                      className={`text-xs font-medium ${
+                        low ? "text-rose-600" : "text-slate-400"
+                      }`}
+                    >
+                      {p.stock} in stock
+                    </span>
+                    <Badge tone={low ? "warning" : "neutral"}>
+                      {low ? "Low" : "In stock"}
+                    </Badge>
                   </span>
                 </button>
               );
@@ -303,15 +304,15 @@ export default function PosPage() {
 
       {/* RIGHT: the cart */}
       <div className="lg:col-span-1">
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-card shadow-card">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
             <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800">
-              <ShoppingCart size={18} /> Current Sale
+              <ShoppingCart size={18} className="text-indigo-600" /> Current Sale
             </h2>
             {cart.length > 0 && (
               <button
                 onClick={clearCart}
-                className="text-xs text-slate-500 hover:text-rose-600"
+                className="text-xs font-medium text-slate-400 transition hover:text-rose-600"
               >
                 Clear
               </button>
@@ -319,13 +320,13 @@ export default function PosPage() {
           </div>
 
           {/* Items */}
-          <div className="max-h-64 overflow-y-auto px-4 py-2">
+          <div className="max-h-64 flex-1 overflow-y-auto px-4 py-1.5">
             {cart.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">
+              <p className="py-6 text-center text-sm text-slate-400">
                 Tap a product to add it.
               </p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-1.5">
                 {cart.map((i) => (
                   <li key={i.product._id} className="flex items-center gap-2">
                     <div className="min-w-0 flex-1">
@@ -339,28 +340,28 @@ export default function PosPage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => changeQty(i.product._id, -1)}
-                        className="rounded bg-slate-100 p-1 text-slate-700 hover:bg-slate-200"
+                        className="grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-slate-600 transition hover:bg-indigo-100 hover:text-indigo-600"
                       >
-                        <Minus size={14} />
+                        <Minus size={13} />
                       </button>
                       <input
                         value={i.quantity}
                         onChange={(e) =>
                           setQty(i.product._id, Number(e.target.value))
                         }
-                        className="w-10 rounded border border-slate-200 py-1 text-center text-sm"
+                        className="h-7 w-10 rounded-lg border border-slate-200 py-0.5 text-center text-sm text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                       />
                       <button
                         onClick={() => changeQty(i.product._id, 1)}
-                        className="rounded bg-slate-100 p-1 text-slate-700 hover:bg-slate-200"
+                        className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-white transition hover:bg-indigo-700"
                       >
-                        <Plus size={14} />
+                        <Plus size={13} />
                       </button>
                       <button
                         onClick={() => setQty(i.product._id, 0)}
-                        className="rounded p-1 text-slate-400 hover:text-rose-600"
+                        className="grid h-7 w-7 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </li>
@@ -370,7 +371,7 @@ export default function PosPage() {
           </div>
 
           {/* Money + payment */}
-          <div className="space-y-3 border-t border-slate-200 px-4 py-3">
+          <div className="space-y-2 border-t border-slate-200 px-4 py-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500">Subtotal</span>
               <span className="font-medium text-slate-800">
@@ -383,7 +384,7 @@ export default function PosPage() {
                 value={discount}
                 onChange={(e) => setDiscount(Number(e.target.value))}
                 min="0"
-                className="w-24 rounded border border-slate-200 px-2 py-1 text-right text-sm"
+                className="w-24 rounded-lg border border-slate-200 py-1 text-center text-sm text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               />
             </div>
             <div className="flex items-center justify-between text-sm">
@@ -397,10 +398,10 @@ export default function PosPage() {
                 <button
                   key={m}
                   onClick={() => setPaymentMethod(m)}
-                  className={`flex-1 rounded-lg border py-2 text-sm capitalize ${
+                  className={`flex-1 rounded-lg border py-2 text-sm capitalize transition ${
                     paymentMethod === m
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-slate-200 text-slate-500"
+                      ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                      : "border-slate-200 text-slate-500 hover:border-slate-300"
                   }`}
                 >
                   {m}
@@ -418,7 +419,7 @@ export default function PosPage() {
                     onChange={(e) => setCashReceived(e.target.value)}
                     min="0"
                     placeholder="0"
-                    className="w-24 rounded border border-slate-200 px-2 py-1 text-right text-sm"
+                    className="w-24 rounded-lg border border-slate-200 py-1 text-center text-sm text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -440,57 +441,47 @@ export default function PosPage() {
               <span className="text-base font-semibold text-slate-800">
                 Total
               </span>
-              <span className="text-xl font-bold text-slate-900">
+              <span className="text-xl font-bold text-indigo-600">
                 {money(total)}
               </span>
             </div>
 
-            <button
+            <Button
               onClick={completeSale}
               disabled={busy || cart.length === 0}
-              className="w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+              className="w-full py-2"
             >
               {busy ? "Saving…" : "Complete sale"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Receipt modal */}
-      {receipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-800">
-                Sale complete
-              </h3>
-              <button
-                onClick={() => setReceipt(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">
-              Invoice {receipt.invoiceNo} · {money(receipt.total)}
-            </p>
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={printReceipt}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                <Printer size={16} /> Print receipt
-              </button>
-              <button
-                onClick={() => setReceipt(null)}
-                className="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-              >
-                New sale
-              </button>
-            </div>
-          </div>
+      <Modal
+        size="sm"
+        onClose={() => setReceipt(null)}
+        title="Sale complete"
+      >
+        <p className="text-sm text-slate-500">
+          Invoice {receipt.invoiceNo} · {money(receipt.total)}
+        </p>
+        <div className="mt-5 flex items-center gap-2">
+          <Button
+            variant="secondary"
+            iconLeft={<Printer size={16} />}
+            onClick={printReceipt}
+          >
+            Print receipt
+          </Button>
+          <Button
+            variant="primary"
+            iconRight={<ShoppingCart size={16} />}
+            onClick={() => setReceipt(null)}
+          >
+            New sale
+          </Button>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

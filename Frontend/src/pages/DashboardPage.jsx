@@ -5,8 +5,11 @@ import {
   Users,
   AlertTriangle,
   Receipt,
+  TrendingUp,
+  ShoppingBag,
 } from "lucide-react";
 import api, { errorMessage } from "../lib/api";
+import Stat from "../components/ui/Stat";
 
 // Build a money string from the store's currency, e.g. "Rs 56.00".
 function money(n, currency) {
@@ -14,29 +17,6 @@ function money(n, currency) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
-}
-
-// A small label + big number card. `tone` picks the accent colour.
-function StatCard({ icon: Icon, label, value, sub, tone }) {
-  const tones = {
-    green: "bg-emerald-50 text-emerald-600",
-    indigo: "bg-indigo-50 text-indigo-600",
-    amber: "bg-amber-50 text-amber-600",
-    rose: "bg-rose-50 text-rose-600",
-    sky: "bg-sky-50 text-sky-600",
-  };
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className={`rounded-lg p-2 ${tones[tone] || tones.indigo}`}>
-          <Icon size={20} />
-        </div>
-        <span className="text-sm font-medium text-slate-500">{label}</span>
-      </div>
-      <div className="mt-3 text-2xl font-bold text-slate-800">{value}</div>
-      {sub && <div className="mt-1 text-xs text-slate-400">{sub}</div>}
-    </div>
-  );
 }
 
 function statusStyle(status) {
@@ -78,7 +58,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+      <div className="rounded-2xl border border-slate-200 bg-card p-6 text-sm text-slate-500 shadow-card">
         Loading dashboard…
       </div>
     );
@@ -86,7 +66,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-card">
         Could not load the dashboard: {error}
       </div>
     );
@@ -95,7 +75,7 @@ export default function DashboardPage() {
   // Guard against a missing object so the page never crashes.
   if (!stats) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+      <div className="rounded-2xl border border-slate-200 bg-card p-6 text-sm text-slate-500 shadow-card">
         No data yet. Make a sale to see the dashboard fill in.
       </div>
     );
@@ -105,63 +85,69 @@ export default function DashboardPage() {
   const maxSold = Math.max(...topProducts.map((p) => p.units), 1);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <Stat
           icon={Banknote}
           label="Today's Sales"
           value={money(stats.todayRevenue, currency)}
-          sub={`${stats.todayOrders} order${stats.todayOrders === 1 ? "" : "s"} today`}
+          subtitle={`${stats.todayOrders} order${
+            stats.todayOrders === 1 ? "" : "s"
+          } today`}
           tone="green"
         />
-        <StatCard
+        <Stat
           icon={Receipt}
           label="Total Revenue"
           value={money(stats.totalRevenue, currency)}
-          sub="All completed sales"
+          subtitle="All completed sales"
           tone="indigo"
         />
-        <StatCard
+        <Stat
           icon={Package}
           label="Products"
           value={stats.productCount}
-          sub="Active products"
-          tone="sky"
+          subtitle="Active products"
+          tone="blue"
         />
-        <StatCard
+        <Stat
           icon={Users}
           label="Customers"
           value={stats.customerCount}
-          sub="Saved customers"
+          subtitle="Saved customers"
           tone="indigo"
         />
-        <StatCard
+        <Stat
           icon={AlertTriangle}
           label="Low Stock"
           value={stats.lowStockCount}
-          sub="At or below minimum"
-          tone={stats.lowStockCount > 0 ? "rose" : "amber"}
+          subtitle="At or below minimum"
+          tone={stats.lowStockCount > 0 ? "red" : "amber"}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Sales chart */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800">
+        <div className="rounded-2xl border border-slate-200 bg-card p-6 shadow-card lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800">
+              <TrendingUp size={17} className="text-indigo-600" />
               Sales — Last 7 Days
             </h2>
             <span className="text-sm text-slate-500">
               {money(stats.todayRevenue, currency)} today
             </span>
           </div>
-          <div className="flex h-48 items-end justify-between gap-3">
+          <div className="flex h-56 items-end justify-between gap-3">
             {daily.map((d) => (
-              <div key={d.label} className="flex flex-1 flex-col items-center gap-2">
+              <div
+                key={d.label}
+                className="flex flex-1 flex-col items-center gap-2"
+              >
                 <div className="flex w-full flex-1 items-end">
                   <div
-                    className="w-full rounded-t-md bg-indigo-500 transition-colors hover:bg-indigo-600"
+                    className="w-full rounded-t-lg bg-gradient-to-t from-indigo-500 to-violet-500 transition-all hover:from-indigo-600 hover:to-violet-600"
                     style={{ height: `${(d.value / maxSales) * 100}%` }}
                     title={`${money(d.value, currency)}`}
                   />
@@ -173,8 +159,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Top products */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-800">
+        <div className="rounded-2xl border border-slate-200 bg-card p-5 shadow-card">
+          <h2 className="mb-3 text-base font-semibold text-slate-800">
             Top Products
           </h2>
           {topProducts.length === 0 ? (
@@ -182,7 +168,7 @@ export default function DashboardPage() {
               No products sold yet.
             </p>
           ) : (
-            <ul className="space-y-4">
+            <ul className="space-y-3">
               {topProducts.map((p) => (
                 <li key={p.name} className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm">
@@ -191,7 +177,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-indigo-500"
+                      className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
                       style={{ width: `${(p.units / maxSold) * 100}%` }}
                     />
                   </div>
@@ -203,9 +189,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent sales */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-800">Recent Sales</h2>
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-card shadow-card">
+        <div className="border-b border-slate-100 px-4 py-3">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800">
+            <ShoppingBag size={17} className="text-indigo-600" />
+            Recent Sales
+          </h2>
         </div>
         {stats.recent.length === 0 ? (
           <p className="px-6 py-6 text-sm text-slate-500">
@@ -216,7 +205,7 @@ export default function DashboardPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-6 py-3">Invoice</th>
+                  <th className="px-4 py-2.5">Invoice</th>
                   <th className="px-6 py-3">Customer</th>
                   <th className="px-6 py-3">Cashier</th>
                   <th className="px-6 py-3">Date</th>
@@ -224,25 +213,25 @@ export default function DashboardPage() {
                   <th className="px-6 py-3 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 bg-white">
                 {stats.recent.map((o) => (
                   <tr key={o._id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 font-medium text-slate-700">
+                    <td className="px-4 py-2.5 font-medium text-slate-700">
                       {o.invoiceNo}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-4 py-2.5 text-slate-600">
                       {o.customer ? o.customer.name : "Walk-in"}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-4 py-2.5 text-slate-600">
                       {o.cashier ? o.cashier.name : "—"}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-4 py-2.5 text-slate-600">
                       {new Date(o.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-right font-medium text-slate-700">
+                    <td className="px-4 py-2.5 text-right font-medium text-slate-700">
                       {money(o.total, currency)}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-2.5 text-right">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
                           o.status
