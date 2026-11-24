@@ -15,6 +15,7 @@
 const mongoose = require("mongoose");
 const Sale = require("../models/Sale");
 const Product = require("../models/Product");
+const Purchase = require("../models/Purchase");
 const StockMovement = require("../models/StockMovement");
 const Notification = require("../models/Notification");
 const Settings = require("../models/Settings");
@@ -104,15 +105,39 @@ async function create(req, res, io) {
       res.status(400).json({ error: "Discount must be zero or a positive amount" });
       return;
     }
+
+    // Cost snapshot: what each unit cost the store, so profit can be
+    // computed later from ACTUAL cost, not the current price. We use
+    // the cost from the LATEST received purchase for that product, and
+    // fall back to the product's purchasePrice when there is none.
+    const costByProduct = {};
+    const costLines = await Purchase.find({
+      received: true,
+      "items.product": { $in: ids },
+    })
+      .sort({ createdAt: 1 }) // oldest first, so the newest wins below
+      .lean();
+    for (const pc of costLines) {
+      for (const li of pc.items) {
+        // Only keep the newest received cost per product.
+        costByProduct[String(li.product)] = li.costPerUnit;
+      }
+    }
+
     let subtotal = 0;
     const saleItems = items.map((it) => {
       const p = products.find((x) => String(x._id) === String(it.product));
       const lineTotal = p.salePrice * it.quantity;
       subtotal += lineTotal;
+      const cost =
+        costByProduct[String(p._id)] != null
+          ? costByProduct[String(p._id)]
+          : p.purchasePrice;
       return {
         product: p._id,
         name: p.name,
         price: p.salePrice,
+        costPerUnit: cost,
         quantity: it.quantity,
         lineTotal,
       };
@@ -342,48 +367,67 @@ async function cancel(req, res) {
     return;
   }
 
+  // The status change and every stock restore commit together in ONE
+  // transaction. A crash mid-cancel rolls back completely, so the sale
+  // is never left "cancelled" with its stock still taken (or vice versa).
+  const session = await mongoose.startSession();
   try {
-    sale.status = "cancelled";
-    await sale.save();
+    await session.withTransaction(
+      async () => {
+        sale.status = "cancelled";
+        await sale.save({ session });
 
-    // Count how many units of each product came back through returns.
-    const returns = await Return.find({ sale: sale._id });
-    const returnedByProduct = {};
-    for (const r of returns) {
-      for (const it of r.items) {
-        const key = String(it.product);
-        returnedByProduct[key] = (returnedByProduct[key] || 0) + it.quantity;
-      }
-    }
+        // Count how many units of each product came back through returns.
+        // find(conditions, projection, options): session goes in the
+        // 3rd arg — the 2nd arg is the projection.
+        const returns = await Return.find({ sale: sale._id }, null, { session });
+        const returnedByProduct = {};
+        for (const r of returns) {
+          for (const it of r.items) {
+            const key = String(it.product);
+            returnedByProduct[key] = (returnedByProduct[key] || 0) + it.quantity;
+          }
+        }
 
-    // Give each item's stock back — only the part that was NOT
-    // already restored by a return.
-    for (const it of sale.items) {
-      const key = String(it.product);
-      const alreadyBack = Math.min(
-        returnedByProduct[key] || 0,
-        it.quantity
-      );
-      const toRestore = it.quantity - alreadyBack;
-      if (toRestore <= 0) continue; // fully returned — nothing left
+        // Give each item's stock back — only the part that was NOT
+        // already restored by a return.
+        for (const it of sale.items) {
+          const key = String(it.product);
+          const alreadyBack = Math.min(
+            returnedByProduct[key] || 0,
+            it.quantity
+          );
+          const toRestore = it.quantity - alreadyBack;
+          if (toRestore <= 0) continue; // fully returned — nothing left
 
-      await Product.updateOne(
-        { _id: it.product },
-        { $inc: { stock: toRestore } }
-      );
-      await StockMovement.create({
-        product: it.product,
-        type: "in",
-        quantity: toRestore,
-        reason: "Cancelled " + sale.invoiceNo,
-        reference: sale.invoiceNo,
-        doneBy: req.userId,
-      });
-    }
+          await Product.updateOne(
+            { _id: it.product },
+            { $inc: { stock: toRestore } },
+            { session }
+          );
+          await StockMovement.create(
+            [
+              {
+                product: it.product,
+                type: "in",
+                quantity: toRestore,
+                reason: "Cancelled " + sale.invoiceNo,
+                reference: sale.invoiceNo,
+                doneBy: req.userId,
+              },
+            ],
+            { session }
+          );
+        }
+      },
+      { readConcern: { level: "local" }, writeConcern: { w: "majority" } }
+    );
     res.json({ ok: true });
   } catch (err) {
     console.error("Cancel failed:", err && err.message);
     res.status(500).json({ error: "Cancel failed, please try again" });
+  } finally {
+    await session.endSession();
   }
 }
 

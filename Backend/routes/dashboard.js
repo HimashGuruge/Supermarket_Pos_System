@@ -13,6 +13,7 @@ router.use(requireAuth);
 router.get("/stats", c.stats);
 router.get("/daily-sales", c.dailySales);
 router.get("/monthly-sales", c.monthlySales);
+router.get("/profit", c.profit);
 router.get("/top-products", c.topProducts);
 
 module.exports = router;

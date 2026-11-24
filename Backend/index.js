@@ -13,6 +13,7 @@
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
+const path = require("path");
 const { Server } = require("socket.io");
 require("dotenv").config(); // reads .env (MONGO_URI, JWT_SECRET, PORT)
 
@@ -22,7 +23,18 @@ const { seed } = require("./seed/seed");
 // 2. The app. express.json() reads request bodies as JS objects,
 //    so controllers can use req.body directly.
 const app = express();
-app.use(cors());
+
+// Only the local frontend origins may call the API from a browser.
+// (Servers without an Origin header — e.g. curl, the seed script —
+// are still allowed, so API testing keeps working.)
+const FRONTEND_ORIGINS = ["http://localhost:5173", "http://localhost:5174"];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      callback(null, !origin || FRONTEND_ORIGINS.includes(origin));
+    },
+  })
+);
 app.use(express.json());
 
 // 3. Socket.IO.
@@ -67,6 +79,11 @@ app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/settings", require("./routes/settings"));
 app.use("/api/notifications", require("./routes/notifications"));
 
+// Serve uploaded files (the store logo) under /uploads.
+// The logo is saved into Backend/uploads and the settings document
+// stores its path, e.g. "/uploads/logo-1712345678.png".
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // 5. Safety nets.
 // 404: a URL that matched no route gets a friendly answer.
 app.use((req, res) => {
@@ -83,6 +100,15 @@ app.use((err, req, res, next) => {
 // 6. Start: connect to MongoDB, fill an empty database with
 //    seed data, then open the port.
 const PORT = process.env.PORT || 3000;
+
+// Refuse to boot with the built-in fallback JWT secret: anyone who
+// can read the code could then forge login tokens.
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET is not set in .env — refusing to start.");
+  console.error("Add a long random value, e.g.:");
+  console.error("  JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef");
+  process.exit(1);
+}
 
 connect()
   .then(async () => {

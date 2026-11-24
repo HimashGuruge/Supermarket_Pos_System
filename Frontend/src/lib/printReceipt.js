@@ -6,18 +6,44 @@
 // the Sales History page (old sales) use this same code, so the
 // receipt always looks the same no matter where it is printed.
 //
-// printReceipt(sale, settings, money)
+// printReceipt(sale, settings, money, apiBase)
 //   sale      — full sale object from the API (items, totals, ...)
 //   settings  — the settings document from GET /api/settings
 //   money     — function that formats a number, e.g. (n) => "LKR 120.00"
 //               (each page builds this from settings.currency)
+//   apiBase   — the backend origin, so the logo image (stored on the
+//               server at /uploads/...) can be loaded. Defaults to the
+//               local dev server.
 
-export function printReceipt(sale, settings, money) {
+// Escape a string so it can be inserted into HTML safely.
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[c]));
+}
+
+export function printReceipt(sale, settings, money, apiBase = "http://localhost:3000") {
   const w = window.open("", "_blank", "width=380,height=600");
   if (!w) {
     // window.open returns null when pop-ups are blocked.
     return false;
   }
+
+  // The store header lines. The logo is an image served by the
+  // backend, so it needs the backend origin in front of its path.
+  const storeLines = [
+    settings.address ? `<p>${esc(settings.address)}</p>` : "",
+    settings.phone ? `<p>${esc(settings.phone)}</p>` : "",
+  ]
+    .filter(Boolean)
+    .join("");
+  const logoLine = settings.logo
+    ? `<img src="${esc(apiBase + settings.logo)}" alt="" style="max-width:60mm;max-height:24mm;margin:2px auto 0;display:block" />`
+    : "";
 
   const rows = sale.items
     .map(
@@ -50,6 +76,7 @@ export function printReceipt(sale, settings, money) {
         .head { text-align: center; }
         .head h1 { font-size: 14px; margin: 0; }
         .head p { margin: 1px 0; }
+        .head img { max-width: 60mm; max-height: 24mm; margin: 2px auto 0; display: block; }
         hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 2px 0; font-size: 11px; }
@@ -62,9 +89,11 @@ export function printReceipt(sale, settings, money) {
     </head>
     <body>
       <div class="head">
-        <h1>${settings.storeName}</h1>
+        ${logoLine}
+        <h1>${esc(settings.storeName)}</h1>
+        ${storeLines}
         <p>Receipt</p>
-        <p>${sale.invoiceNo}</p>
+        <p>${esc(sale.invoiceNo)}</p>
         <p>${new Date(sale.createdAt).toLocaleString()}</p>
       </div>
       <hr />
@@ -92,8 +121,8 @@ export function printReceipt(sale, settings, money) {
       </div>
       <hr />
       <div class="foot">
-        <p>Cashier: ${cashierName}</p>
-        <p>${settings.receiptFooter}</p>
+        <p>Cashier: ${esc(cashierName)}</p>
+        <p>${esc(settings.receiptFooter)}</p>
       </div>
     </body>
     </html>

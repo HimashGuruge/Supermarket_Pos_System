@@ -78,10 +78,16 @@ export default function ReturnsPage() {
     setQtys((q) => ({ ...q, [productId]: value }));
   }
 
-  // Refund preview from the sale's own prices.
+  // Refund preview, matching the backend exactly: each unit is paid back
+  // at the price the customer REALLY paid, after discount and tax.
+  // paidFactor = total / subtotal (1.0 when there is no discount or tax).
+  const paidFactor =
+    selectedSale && selectedSale.subtotal > 0
+      ? selectedSale.total / selectedSale.subtotal
+      : 1;
   const refund = selectedSale
     ? selectedSale.items.reduce(
-        (sum, it) => sum + it.price * Number(qtys[it.product] || 0),
+        (sum, it) => sum + it.price * paidFactor * Number(qtys[it.product] || 0),
         0
       )
     : 0;

@@ -1,15 +1,24 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Banknote,
-  Package,
-  Users,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   AlertTriangle,
+  Banknote,
   Receipt,
   TrendingUp,
-  ShoppingBag,
+  Wallet,
 } from "lucide-react";
 import api, { errorMessage } from "../lib/api";
-import Stat from "../components/ui/Stat";
+import Badge from "../components/ui/Badge";
+import Table from "../components/ui/Table";
 
 // Build a money string from the store's currency, e.g. "Rs 56.00".
 function money(n, currency) {
@@ -19,34 +28,101 @@ function money(n, currency) {
   })}`;
 }
 
-function statusStyle(status) {
-  if (status === "completed") return "bg-emerald-100 text-emerald-700";
-  if (status === "cancelled") return "bg-slate-100 text-slate-600";
-  return "bg-rose-100 text-rose-700";
+// Compact axis numbers: 1234 -> "1.2k", 2000000 -> "2.0M".
+function compact(n) {
+  const a = Math.abs(n);
+  if (a >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (a >= 1e3) return (n / 1e3).toFixed(a >= 1e4 ? 0 : 1) + "k";
+  return String(Math.round(n));
+}
+
+// A small segmented control for the chart toggles.
+function Segmented({ options, value, onChange, disabled = false }) {
+  return (
+    <div
+      className={`flex items-center rounded-lg bg-slate-100 p-0.5 text-xs font-medium ${
+        disabled ? "opacity-40" : ""
+      }`}
+    >
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(o.value)}
+          className={`rounded-md px-2.5 py-1 transition ${
+            value === o.value
+              ? "bg-white text-slate-800 shadow-sm"
+              : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// A compact KPI tile: label + icon row, big value, tiny subtitle.
+const kpiTones = {
+  green: "bg-emerald-500/10 text-emerald-600",
+  red: "bg-rose-500/10 text-rose-600",
+  blue: "bg-sky-500/10 text-sky-600",
+  amber: "bg-amber-500/10 text-amber-600",
+  indigo: "bg-indigo-500/10 text-indigo-600",
+};
+
+function Kpi({ icon: Icon, label, value, sub, tone = "indigo", valueClass, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className={`rounded-xl border border-slate-200 bg-card p-3 shadow-card ${
+        onClick ? "cursor-pointer transition hover:border-indigo-200 hover:shadow-md" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-slate-500">{label}</span>
+        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${kpiTones[tone]}`}>
+          <Icon size={14} />
+        </div>
+      </div>
+      <div className={`mt-1.5 truncate text-xl font-bold ${valueClass || "text-slate-800"}`}>
+        {value}
+      </div>
+      <div className="mt-0.5 truncate text-xs text-slate-400">{sub}</div>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null); // /dashboard/stats object
-  const [daily, setDaily] = useState([]); // [{ label, value }]
-  const [topProducts, setTopProducts] = useState([]); // [{ name, units }]
   const [currency, setCurrency] = useState("LKR");
+  const [topProfit, setTopProfit] = useState([]); // byProduct from /profit?days=30
+  const [series, setSeries] = useState({}); // cache: key -> [{ label, value }]
+  const [metric, setMetric] = useState("revenue"); // "revenue" | "profit"
+  const [range, setRange] = useState("7"); // "7" | "30" | "12mo"
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // What the chart shows right now.
+  const seriesKey = metric === "profit" ? "profit-12mo" : `rev-${range}`;
 
   useEffect(() => {
     const load = async () => {
       try {
-        // All three dashboard calls go out together, plus the currency.
-        const [s, d, t, cfg] = await Promise.all([
+        // Stats, currency, the default 7-day revenue chart, and the
+        // 30-day profit summary (which also carries top products by profit).
+        const [s, cfg, d7, p30] = await Promise.all([
           api.get("/dashboard/stats"),
-          api.get("/dashboard/daily-sales?days=7"),
-          api.get("/dashboard/top-products?limit=5"),
           api.get("/settings"),
+          api.get("/dashboard/daily-sales?days=7"),
+          api.get("/dashboard/profit?days=30"),
         ]);
         setStats(s.data);
-        setDaily(d.data);
-        setTopProducts(t.data);
         setCurrency(cfg.data.currency || "LKR");
+        setSeries({ "rev-7": d7.data });
+        setTopProfit((p30.data.byProduct || []).slice(0, 5));
       } catch (err) {
         setError(errorMessage(err));
       } finally {
@@ -55,6 +131,35 @@ export default function DashboardPage() {
     };
     load();
   }, []);
+
+  // Fetch the chart series on demand (metric or range changed) and cache it.
+  useEffect(() => {
+    if (loading || series[seriesKey]) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        let data;
+        if (seriesKey === "profit-12mo") {
+          const r = await api.get("/dashboard/profit?days=365");
+          data = (r.data.byMonth || []).map((m) => ({
+            label: m.label,
+            value: m.profit,
+          }));
+        } else if (seriesKey === "rev-12mo") {
+          data = (await api.get("/dashboard/monthly-sales")).data;
+        } else {
+          const days = seriesKey.slice(3);
+          data = (await api.get(`/dashboard/daily-sales?days=${days}`)).data;
+        }
+        if (!cancelled) setSeries((s) => ({ ...s, [seriesKey]: data }));
+      } catch (err) {
+        if (!cancelled) setError(errorMessage(err));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesKey, loading, series]);
 
   if (loading) {
     return (
@@ -81,104 +186,212 @@ export default function DashboardPage() {
     );
   }
 
-  const maxSales = Math.max(...daily.map((d) => d.value), 1);
-  const maxSold = Math.max(...topProducts.map((p) => p.units), 1);
+  const chartData = series[seriesKey];
+  const chartColor = metric === "profit" ? "#059669" : "#6366F1";
+  const maxProfit = Math.max(...topProfit.map((p) => p.profit), 1);
+  const avgOrder =
+    stats.totalOrders > 0 ? stats.totalRevenue / stats.totalOrders : 0;
+  const todayMargin = ((stats.todayProfit?.margin || 0) * 100).toFixed(1);
+
+  const recentColumns = [
+    {
+      key: "invoice",
+      header: "Invoice",
+      render: (o) => <span className="font-medium text-slate-700">{o.invoiceNo}</span>,
+    },
+    {
+      key: "customer",
+      header: "Customer",
+      render: (o) => (o.customer ? o.customer.name : "Walk-in"),
+    },
+    {
+      key: "cashier",
+      header: "Cashier",
+      render: (o) => (o.cashier ? o.cashier.name : "—"),
+    },
+    {
+      key: "date",
+      header: "Date",
+      render: (o) => new Date(o.createdAt).toLocaleString(),
+    },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      render: (o) => (
+        <span className="font-medium text-slate-700">{money(o.total, currency)}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "right",
+      render: (o) => (
+        <Badge tone={o.status === "completed" ? "success" : o.status === "cancelled" ? "neutral" : "danger"}>
+          {o.status}
+        </Badge>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-4">
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <Stat
+    <div className="space-y-2">
+      {/* KPI row */}
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
+        <Kpi
           icon={Banknote}
           label="Today's Sales"
           value={money(stats.todayRevenue, currency)}
-          subtitle={`${stats.todayOrders} order${
-            stats.todayOrders === 1 ? "" : "s"
-          } today`}
-          tone="green"
+          sub={`${stats.todayOrders} order${stats.todayOrders === 1 ? "" : "s"} today`}
+          tone="indigo"
         />
-        <Stat
-          icon={Receipt}
+        <Kpi
+          icon={TrendingUp}
+          label="Today's Profit"
+          value={money(stats.todayProfit?.profit, currency)}
+          sub={`${todayMargin}% margin`}
+          tone="green"
+          valueClass={
+            (stats.todayProfit?.profit || 0) >= 0 ? "text-emerald-600" : "text-rose-600"
+          }
+        />
+        <Kpi
+          icon={Wallet}
           label="Total Revenue"
           value={money(stats.totalRevenue, currency)}
-          subtitle="All completed sales"
-          tone="indigo"
-        />
-        <Stat
-          icon={Package}
-          label="Products"
-          value={stats.productCount}
-          subtitle="Active products"
+          sub="All completed sales"
           tone="blue"
         />
-        <Stat
-          icon={Users}
-          label="Customers"
-          value={stats.customerCount}
-          subtitle="Saved customers"
+        <Kpi
+          icon={Receipt}
+          label="Avg Order Value"
+          value={money(avgOrder, currency)}
+          sub="Per completed sale"
           tone="indigo"
         />
-        <Stat
+        <Kpi
           icon={AlertTriangle}
           label="Low Stock"
           value={stats.lowStockCount}
-          subtitle="At or below minimum"
+          sub="At or below minimum"
           tone={stats.lowStockCount > 0 ? "red" : "amber"}
+          onClick={() => navigate("/products")}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {/* Sales chart */}
-        <div className="rounded-2xl border border-slate-200 bg-card p-6 shadow-card lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800">
-              <TrendingUp size={17} className="text-indigo-600" />
-              Sales — Last 7 Days
-            </h2>
-            <span className="text-sm text-slate-500">
-              {money(stats.todayRevenue, currency)} today
+      {/* Chart + top products */}
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-card p-3 shadow-card lg:col-span-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              {metric === "profit" ? "Profit · 12 months" : "Revenue"}
             </span>
+            <div className="flex items-center gap-2">
+              <Segmented
+                options={[
+                  { value: "revenue", label: "Revenue" },
+                  { value: "profit", label: "Profit" },
+                ]}
+                value={metric}
+                onChange={setMetric}
+              />
+              <Segmented
+                options={[
+                  { value: "7", label: "7d" },
+                  { value: "30", label: "30d" },
+                  { value: "12mo", label: "12mo" },
+                ]}
+                value={range}
+                onChange={setRange}
+                disabled={metric === "profit"}
+              />
+            </div>
           </div>
-          <div className="flex h-56 items-end justify-between gap-3">
-            {daily.map((d) => (
-              <div
-                key={d.label}
-                className="flex flex-1 flex-col items-center gap-2"
-              >
-                <div className="flex w-full flex-1 items-end">
-                  <div
-                    className="w-full rounded-t-lg bg-gradient-to-t from-indigo-500 to-violet-500 transition-all hover:from-indigo-600 hover:to-violet-600"
-                    style={{ height: `${(d.value / maxSales) * 100}%` }}
-                    title={`${money(d.value, currency)}`}
+          <div className="h-40">
+            {chartData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={chartColor} stopOpacity={0.22} />
+                      <stop offset="100%" stopColor={chartColor} stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: "#94A3B8" }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="equidistantPreserveStart"
                   />
-                </div>
-                <span className="text-xs text-slate-500">{d.label}</span>
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "#94A3B8" }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={44}
+                    tickFormatter={compact}
+                  />
+                  <Tooltip
+                    formatter={(v) => money(v, currency)}
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: "1px solid #E2E8F0",
+                      boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke={chartColor}
+                    strokeWidth={2}
+                    fill="url(#chartFill)"
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-xs text-slate-400">
+                Loading…
               </div>
-            ))}
+            )}
           </div>
         </div>
 
-        {/* Top products */}
-        <div className="rounded-2xl border border-slate-200 bg-card p-5 shadow-card">
-          <h2 className="mb-3 text-base font-semibold text-slate-800">
-            Top Products
-          </h2>
-          {topProducts.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No products sold yet.
+        <div className="rounded-xl border border-slate-200 bg-card p-3 shadow-card">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Top Products
+            </span>
+            <span className="text-[10px] text-slate-400">by profit · 30d</span>
+          </div>
+          {topProfit.length === 0 ? (
+            <p className="py-8 text-center text-xs text-slate-400">
+              No sales yet.
             </p>
           ) : (
-            <ul className="space-y-3">
-              {topProducts.map((p) => (
-                <li key={p.name} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700">{p.name}</span>
-                    <span className="text-slate-500">{p.units} sold</span>
+            <ul className="space-y-2">
+              {topProfit.map((p, i) => (
+                <li key={p.name} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex min-w-0 items-center gap-1.5 text-slate-700">
+                      <span className="w-3 shrink-0 text-right text-slate-400">
+                        {i + 1}
+                      </span>
+                      <span className="truncate">{p.name}</span>
+                    </span>
+                    <span className="shrink-0 font-semibold text-emerald-600">
+                      {money(p.profit, currency)}
+                    </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
-                      style={{ width: `${(p.units / maxSold) * 100}%` }}
+                      className="h-full rounded-full bg-indigo-500"
+                      style={{
+                        width: `${Math.max(0, (p.profit / maxProfit) * 100)}%`,
+                      }}
                     />
                   </div>
                 </li>
@@ -189,64 +402,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent sales */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-card shadow-card">
-        <div className="border-b border-slate-100 px-4 py-3">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800">
-            <ShoppingBag size={17} className="text-indigo-600" />
-            Recent Sales
-          </h2>
-        </div>
-        {stats.recent.length === 0 ? (
-          <p className="px-6 py-6 text-sm text-slate-500">
-            No sales yet. Complete a sale in the POS to see it here.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-2.5">Invoice</th>
-                  <th className="px-6 py-3">Customer</th>
-                  <th className="px-6 py-3">Cashier</th>
-                  <th className="px-6 py-3">Date</th>
-                  <th className="px-6 py-3 text-right">Total</th>
-                  <th className="px-6 py-3 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {stats.recent.map((o) => (
-                  <tr key={o._id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 font-medium text-slate-700">
-                      {o.invoiceNo}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">
-                      {o.customer ? o.customer.name : "Walk-in"}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">
-                      {o.cashier ? o.cashier.name : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">
-                      {new Date(o.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-medium text-slate-700">
-                      {money(o.total, currency)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(
-                          o.status
-                        )}`}
-                      >
-                        {o.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Table
+        title="Recent Sales"
+        columns={recentColumns}
+        rows={stats.recent || []}
+        emptyText="No sales yet. Complete a sale in the POS to see it here."
+      />
     </div>
   );
 }

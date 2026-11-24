@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Bell, LogOut, Menu, Search } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 import Sidebar from "../components/Sidebar";
-import { useAuth } from "../contexts/AuthContext";
 
 const titles = {
   "/": "Dashboard",
@@ -14,22 +13,13 @@ const titles = {
   "/customers": "Customers",
   "/purchases": "Purchases",
   "/returns": "Returns",
-};
-
-const roleTone = {
-  admin: "bg-slate-900 text-white",
-  cashier: "bg-indigo-100 text-indigo-700",
-  stock: "bg-emerald-100 text-emerald-700",
+  "/sales": "Sales History",
 };
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { pathname } = useLocation();
-  const { user, logout } = useAuth();
   const title = titles[pathname] ?? "Dashboard";
-
-  // First letter for the little circle avatar.
-  const initial = user && user.name ? user.name[0].toUpperCase() : "U";
 
   return (
     <div className="flex min-h-screen bg-app">
@@ -74,7 +64,7 @@ export default function Layout() {
             </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto">
             <button
               type="button"
               className="relative rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
@@ -83,29 +73,6 @@ export default function Layout() {
               <Bell size={20} />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-card" />
             </button>
-
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white">
-                {initial}
-              </div>
-              {user && (
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                    roleTone[user.role] ?? "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {user.role}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={logout}
-                className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 sm:inline-flex"
-              >
-                <LogOut size={16} />
-                <span>Logout</span>
-              </button>
-            </div>
           </div>
         </header>
 

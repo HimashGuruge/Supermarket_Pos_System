@@ -15,6 +15,11 @@ const saleItemSchema = new mongoose.Schema({
   },
   name: { type: String, required: true }, // snapshot of product name
   price: { type: Number, required: true, min: 0 }, // snapshot of sale price
+  costPerUnit: {
+    type: Number,
+    default: 0,
+    min: 0, // snapshot of what the unit cost us (from the latest purchase)
+  },
   quantity: { type: Number, required: true, min: 1 },
   lineTotal: { type: Number, required: true, min: 0 }, // price * quantity
 });

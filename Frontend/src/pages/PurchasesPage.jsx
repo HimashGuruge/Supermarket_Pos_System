@@ -1,8 +1,10 @@
 // src/pages/PurchasesPage.jsx
 // Stock coming IN: receive stock from a supplier.
 // A list of past purchases, plus a "New Purchase" form.
-// The backend always works out cost from each product's purchasePrice,
-// so the form only sends { supplier, items:[{product, quantity}], paidAmount, notes }.
+// The form sends { supplier, items:[{product, quantity, costPerUnit?}],
+// paidAmount, notes }. costPerUnit is the actual cost per unit (pre-filled
+// from the product's purchasePrice); when left blank the backend falls
+// back to purchasePrice.
 
 import { useEffect, useState } from "react";
 import { PackagePlus, Plus, X } from "lucide-react";
@@ -25,8 +27,10 @@ function paymentStyle(status) {
 }
 
 // One row in the "New Purchase" item list.
+// costPerUnit is pre-filled with the product's purchasePrice and can
+// be overridden per row; the backend uses it as the actual cost.
 function emptyItem() {
-  return { product: "", quantity: 1 };
+  return { product: "", quantity: 1, costPerUnit: "" };
 }
 
 export default function PurchasesPage() {
@@ -95,12 +99,22 @@ export default function PurchasesPage() {
     setItems((rows) => rows.filter((_, i) => i !== index));
   }
 
-  // Total cost from each product's purchasePrice (a preview; the
-  // backend recomputes the real total).
-  const total = items.reduce((sum, it) => {
+  // The effective cost per unit: the entered value, or the product's
+  // purchasePrice when the field is blank (the backend does the same).
+  function costOf(it) {
     const p = productById(it.product);
-    return sum + (p ? p.purchasePrice * Number(it.quantity || 0) : 0);
-  }, 0);
+    const entered = Number(it.costPerUnit);
+    if (it.costPerUnit !== "" && Number.isFinite(entered) && entered >= 0) {
+      return entered;
+    }
+    return p ? p.purchasePrice : 0;
+  }
+
+  // Total cost preview; the backend recomputes the real total.
+  const total = items.reduce(
+    (sum, it) => sum + costOf(it) * Number(it.quantity || 0),
+    0
+  );
 
   async function submit() {
     if (!supplier) {
@@ -112,11 +126,25 @@ export default function PurchasesPage() {
       toast.warning("Add at least one product with a quantity");
       return;
     }
+    // A cost must be a non-negative number when it is provided.
+    for (const it of send) {
+      if (it.costPerUnit !== "") {
+        const c = Number(it.costPerUnit);
+        if (!Number.isFinite(c) || c < 0) {
+          toast.error("Cost per unit must be zero or a positive amount");
+          return;
+        }
+      }
+    }
     setSaving(true);
     try {
       const res = await api.post("/purchases", {
         supplier,
-        items: send.map((it) => ({ product: it.product, quantity: Number(it.quantity) })),
+        items: send.map((it) => ({
+          product: it.product,
+          quantity: Number(it.quantity),
+          costPerUnit: it.costPerUnit === "" ? undefined : Number(it.costPerUnit),
+        })),
         paidAmount: Number(paidAmount) || 0,
         notes,
       });
@@ -189,7 +217,23 @@ export default function PurchasesPage() {
                   <div className="col-span-6">
                     <select
                       value={it.product}
-                      onChange={(e) => changeItem(idx, "product", e.target.value)}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const p = productById(id);
+                        // Prefill the cost with the product's purchasePrice
+                        // so a fresh row is correct without extra typing.
+                        setItems((rows) =>
+                          rows.map((r, i) =>
+                            i === idx
+                              ? {
+                                  ...r,
+                                  product: id,
+                                  costPerUnit: p ? String(p.purchasePrice) : "",
+                                }
+                              : r
+                          )
+                        );
+                      }}
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                     >
                       <option value="">Select a product…</option>
@@ -209,8 +253,17 @@ export default function PurchasesPage() {
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
-                  <div className="col-span-3 text-right text-sm text-slate-600">
-                    {p ? money(p.purchasePrice, currency) : "—"}
+                  <div className="col-span-3 text-right">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={it.costPerUnit}
+                      onChange={(e) => changeItem(idx, "costPerUnit", e.target.value)}
+                      placeholder={p ? p.purchasePrice : "0.00"}
+                      title="Actual cost per unit (defaults to the product's purchase price)"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    />
                   </div>
                   <div className="col-span-1 text-right">
                     <button

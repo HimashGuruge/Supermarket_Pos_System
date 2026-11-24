@@ -28,6 +28,7 @@ import { printReceipt as printReceiptShared } from "../lib/printReceipt";
 import Modal from "../components/ui/Modal";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
+import Input from "../components/ui/Input";
 
 export default function PosPage() {
   // ---- Products -------------------------------------------------------
@@ -457,31 +458,33 @@ export default function PosPage() {
         </div>
       </div>
 
-      <Modal
-        size="sm"
-        onClose={() => setReceipt(null)}
-        title="Sale complete"
-      >
-        <p className="text-sm text-slate-500">
-          Invoice {receipt.invoiceNo} · {money(receipt.total)}
-        </p>
-        <div className="mt-5 flex items-center gap-2">
-          <Button
-            variant="secondary"
-            iconLeft={<Printer size={16} />}
-            onClick={printReceipt}
-          >
-            Print receipt
-          </Button>
-          <Button
-            variant="primary"
-            iconRight={<ShoppingCart size={16} />}
-            onClick={() => setReceipt(null)}
-          >
-            New sale
-          </Button>
-        </div>
-      </Modal>
+      {receipt && (
+        <Modal
+          size="sm"
+          onClose={() => setReceipt(null)}
+          title="Sale complete"
+        >
+          <p className="text-sm text-slate-500">
+            Invoice {receipt.invoiceNo} · {money(receipt.total)}
+          </p>
+          <div className="mt-5 flex items-center gap-2">
+            <Button
+              variant="secondary"
+              iconLeft={<Printer size={16} />}
+              onClick={printReceipt}
+            >
+              Print receipt
+            </Button>
+            <Button
+              variant="primary"
+              iconRight={<ShoppingCart size={16} />}
+              onClick={() => setReceipt(null)}
+            >
+              New sale
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

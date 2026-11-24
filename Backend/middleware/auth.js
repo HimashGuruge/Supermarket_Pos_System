@@ -10,7 +10,9 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-const SECRET = process.env.JWT_SECRET || "pos-super-secret-key-change-me";
+// The secret comes from .env. index.js refuses to start when it is
+// missing, so this is always a real value, never a fallback.
+const SECRET = process.env.JWT_SECRET;
 
 // The middleware function Express calls for every protected route.
 function requireAuth(req, res, next) {
