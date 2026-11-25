@@ -88,10 +88,10 @@ Open http://localhost:5173 and log in.
 - **POS billing** — barcode input, product search, cart, line discounts, cash or card payment, change due, receipt print (58/80 mm thermal layout).
 - **Sales history** — date filter, receipt view, cancel a sale (stock is restored), print any old receipt.
 - **Products & stock** — barcodes, expiry dates, stock-in/out movements, low-stock visibility.
-- **Purchases & returns** — stock-in from suppliers, returns recorded against products.
+- **Purchases & returns** — stock-in from suppliers; product returns against a sale (refund computed from the sale's own prices, capped at what was sold; stock is restored).
 - **Customers** — customer list for sales.
-- **Dashboard** — sales and revenue charts (recharts).
-- **Settings** — store name, tax rate, receipt footer, currency (LKR).
+- **Dashboard** — compact KPI row (revenue, profit, margin, avg order value, low stock), revenue/profit area chart with 7d/30d/12mo range switch, top products ranked by profit, recent sales table.
+- **Settings** — store name, tax rate, receipt footer, currency (LKR), low-stock threshold, and store logo upload (max 2 MB, PNG/JPEG/GIF/WebP/SVG).
 - **Roles** — JWT-protected API; sidebar menus change per role.
 - **Live updates** — Socket.IO broadcasts new sales and stock alerts to open browsers.
 
@@ -111,8 +111,8 @@ All endpoints return JSON and need a `Authorization: Bearer <token>` header (log
 | `/api/returns`          | Product returns                                       |
 | `/api/users`            | User management                                       |
 | `/api/stock-movements`  | Stock in/out log                                      |
-| `/api/dashboard`        | Totals and chart data                                 |
-| `/api/settings`         | Store settings                                        |
+| `/api/dashboard`        | Totals, chart data, profit, top products              |
+| `/api/settings`         | Store settings; `POST /api/settings/logo` (admin, image ≤ 2 MB) |
 | `/api/notifications`    | Notifications                                         |
 
 Quick test from the command line:
