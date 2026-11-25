@@ -13,7 +13,7 @@ A point-of-sale system for a supermarket. Bill items fast with barcode or search
 </p>
 
 <p align="center">
-  <img src="Frontend/home.png" alt="Supermarket POS System screenshot" width="100%">
+  <img src="screenshot.png" alt="Supermarket POS System screenshot" width="100%">
 </p>
 
 ---
