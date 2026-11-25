@@ -12,14 +12,11 @@ A point-of-sale system for a supermarket. Bill items fast with barcode or search
   <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
 </p>
 
-<p align="center">
-  <img src="screenshot.png" alt="Supermarket POS System screenshot" width="100%">
-</p>
-
 ---
 
 ## Table of contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Tech stack](#tech-stack)
 - [Architecture](#architecture)
@@ -31,6 +28,20 @@ A point-of-sale system for a supermarket. Bill items fast with barcode or search
 - [Receipt printing](#receipt-printing)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
+
+## Screenshots
+
+**POS billing** — barcode/search, cart, discounts, payment, and change due.
+
+<p align="center">
+  <img src="screenshot.png" alt="POS billing page" width="100%">
+</p>
+
+**Dashboard** — KPIs, revenue/profit chart, top products, recent sales.
+
+<p align="center">
+  <img src="dashboard.png" alt="Dashboard page" width="100%">
+</p>
 
 ## Features
 
