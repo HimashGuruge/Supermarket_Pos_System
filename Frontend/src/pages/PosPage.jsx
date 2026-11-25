@@ -247,7 +247,7 @@ export default function PosPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
       {/* Hidden barcode scanner input. It is always focused, so a USB
           scanner works from anywhere on the page. */}
       <input
@@ -260,8 +260,8 @@ export default function PosPage() {
 
       {/* LEFT: search + product grid */}
       <div className="lg:col-span-2">
-        <div className="mb-3">
-          <Input icon={<Search size={18} />} hint="Search by name, barcode, or SKU" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <div className="mb-2">
+          <Input icon={<Search size={16} />} hint="Search by name, barcode, or SKU" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
 
         {visible.length === 0 ? (
@@ -269,22 +269,22 @@ export default function PosPage() {
             No products match "{query}".
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {visible.map((p) => {
               const low = p.stock <= p.minStock;
               return (
                 <button
                   key={p._id}
                   onClick={() => addToCart(p)}
-                  className="flex flex-col rounded-xl border border-slate-200 bg-card p-2.5 text-left shadow-card transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-card-lg"
+                  className="flex flex-col rounded-lg border border-slate-200 bg-card p-1.5 text-left shadow-card transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-card-lg"
                 >
-                  <span className="line-clamp-2 text-sm font-medium text-slate-800">
+                  <span className="line-clamp-2 text-xs font-medium text-slate-800">
                     {p.name}
                   </span>
-                  <span className="mt-1.5 text-sm font-bold text-indigo-600">
+                  <span className="mt-0.5 text-xs font-bold text-indigo-600">
                     {money(p.salePrice)}
                   </span>
-                  <span className="mt-1 flex items-center justify-between">
+                  <span className="mt-0.5 flex items-center justify-between">
                     <span
                       className={`text-xs font-medium ${
                         low ? "text-rose-600" : "text-slate-400"
@@ -306,9 +306,9 @@ export default function PosPage() {
       {/* RIGHT: the cart */}
       <div className="lg:col-span-1">
         <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-card shadow-card">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800">
-              <ShoppingCart size={18} className="text-indigo-600" /> Current Sale
+          <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
+              <ShoppingCart size={15} className="text-indigo-600" /> Current Sale
             </h2>
             {cart.length > 0 && (
               <button
@@ -321,48 +321,48 @@ export default function PosPage() {
           </div>
 
           {/* Items */}
-          <div className="max-h-64 flex-1 overflow-y-auto px-4 py-1.5">
+          <div className="max-h-52 flex-1 overflow-y-auto px-3 py-1">
             {cart.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">
+              <p className="py-4 text-center text-xs text-slate-400">
                 Tap a product to add it.
               </p>
             ) : (
-              <ul className="space-y-1.5">
+              <ul className="space-y-1">
                 {cart.map((i) => (
-                  <li key={i.product._id} className="flex items-center gap-2">
+                  <li key={i.product._id} className="flex items-center gap-1.5">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-slate-800">
+                      <p className="truncate text-xs font-medium text-slate-800">
                         {i.product.name}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[11px] text-slate-500">
                         {money(i.product.salePrice)} each
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => changeQty(i.product._id, -1)}
-                        className="grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-slate-600 transition hover:bg-indigo-100 hover:text-indigo-600"
+                        className="grid h-6 w-6 place-items-center rounded-md bg-slate-100 text-slate-600 transition hover:bg-indigo-100 hover:text-indigo-600"
                       >
-                        <Minus size={13} />
+                        <Minus size={12} />
                       </button>
                       <input
                         value={i.quantity}
                         onChange={(e) =>
                           setQty(i.product._id, Number(e.target.value))
                         }
-                        className="h-7 w-10 rounded-lg border border-slate-200 py-0.5 text-center text-sm text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                        className="h-6 w-9 rounded-md border border-slate-200 py-0 text-center text-xs text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
                       />
                       <button
                         onClick={() => changeQty(i.product._id, 1)}
-                        className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-white transition hover:bg-indigo-700"
+                        className="grid h-6 w-6 place-items-center rounded-md bg-indigo-600 text-white transition hover:bg-indigo-700"
                       >
-                        <Plus size={13} />
+                        <Plus size={12} />
                       </button>
                       <button
                         onClick={() => setQty(i.product._id, 0)}
-                        className="grid h-7 w-7 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                        className="grid h-6 w-6 place-items-center rounded-md text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </li>
@@ -372,34 +372,34 @@ export default function PosPage() {
           </div>
 
           {/* Money + payment */}
-          <div className="space-y-2 border-t border-slate-200 px-4 py-2">
-            <div className="flex items-center justify-between text-sm">
+          <div className="space-y-1.5 border-t border-slate-200 px-3 py-1.5">
+            <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500">Subtotal</span>
               <span className="font-medium text-slate-800">
                 {money(subtotal)}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center justify-between gap-2 text-xs">
               <span className="text-slate-500">Discount</span>
               <input
                 value={discount}
                 onChange={(e) => setDiscount(Number(e.target.value))}
                 min="0"
-                className="w-24 rounded-lg border border-slate-200 py-1 text-center text-sm text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="w-20 rounded-md border border-slate-200 py-0.5 text-center text-xs text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
               />
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500">Tax ({settings.taxRate || 0}%)</span>
               <span className="font-medium text-slate-800">{money(tax)}</span>
             </div>
 
             {/* Payment method */}
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               {["cash", "card"].map((m) => (
                 <button
                   key={m}
                   onClick={() => setPaymentMethod(m)}
-                  className={`flex-1 rounded-lg border py-2 text-sm capitalize transition ${
+                  className={`flex-1 rounded-md border py-1 text-xs capitalize transition ${
                     paymentMethod === m
                       ? "border-indigo-300 bg-indigo-50 text-indigo-700"
                       : "border-slate-200 text-slate-500 hover:border-slate-300"
@@ -413,17 +413,17 @@ export default function PosPage() {
             {/* Cash received + change (cash only) */}
             {paymentMethod === "cash" && (
               <>
-                <div className="flex items-center justify-between gap-3 text-sm">
+                <div className="flex items-center justify-between gap-2 text-xs">
                   <span className="text-slate-500">Cash received</span>
                   <input
                     value={cashReceived}
                     onChange={(e) => setCashReceived(e.target.value)}
                     min="0"
                     placeholder="0"
-                    className="w-24 rounded-lg border border-slate-200 py-1 text-center text-sm text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="w-20 rounded-md border border-slate-200 py-0.5 text-center text-xs text-slate-800 transition focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
                   />
                 </div>
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500">Change</span>
                   <span
                     className={`font-semibold ${
@@ -438,11 +438,11 @@ export default function PosPage() {
             )}
 
             {/* TOTAL */}
-            <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-              <span className="text-base font-semibold text-slate-800">
+            <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
+              <span className="text-sm font-semibold text-slate-800">
                 Total
               </span>
-              <span className="text-xl font-bold text-indigo-600">
+              <span className="text-lg font-bold text-indigo-600">
                 {money(total)}
               </span>
             </div>
@@ -450,7 +450,7 @@ export default function PosPage() {
             <Button
               onClick={completeSale}
               disabled={busy || cart.length === 0}
-              className="w-full py-2"
+              className="w-full py-1.5"
             >
               {busy ? "Saving…" : "Complete sale"}
             </Button>
