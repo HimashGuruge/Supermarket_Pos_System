@@ -31,16 +31,16 @@ A point-of-sale system for a supermarket. Bill items fast with barcode or search
 
 ## Screenshots
 
-**POS billing** — barcode/search, cart, discounts, payment, and change due.
-
-<p align="center">
-  <img src="screenshot.png" alt="POS billing page" width="100%">
-</p>
-
 **Dashboard** — KPIs, revenue/profit chart, top products, recent sales.
 
 <p align="center">
   <img src="dashboard.png" alt="Dashboard page" width="100%">
+</p>
+
+**POS billing** — barcode/search, cart, discounts, payment, and change due.
+
+<p align="center">
+  <img src="screenshot.png" alt="POS billing page" width="100%">
 </p>
 
 ## Features
