@@ -15,6 +15,11 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
 });
 
+// The backend origin (no /api). Used to build absolute URLs for
+// static assets served by the backend, e.g. the uploaded store logo.
+const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+export const apiOrigin = apiBase.replace(/\/api\/?$/, "");
+
 // Runs BEFORE every request goes out.
 // If the user is logged in, attach their token to the header
 // so the backend knows who is asking.

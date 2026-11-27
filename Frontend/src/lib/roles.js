@@ -22,6 +22,7 @@ import {
   RotateCcw,
   Settings,
   Receipt,
+  CircleUser,
 } from "lucide-react";
 
 // Build the sidebar menu for a given role.
@@ -42,6 +43,7 @@ export function menuFor(role) {
   const returns = { name: "Returns", to: "/returns", icon: RotateCcw };
   const sales = { name: "Sales", to: "/sales", icon: Receipt };
   const settings = { name: "Settings", to: "/settings", icon: Settings };
+  const profile = { name: "Profile", to: "/profile", icon: CircleUser };
 
   if (role === "admin") {
     items.push(
@@ -52,18 +54,19 @@ export function menuFor(role) {
       sales,
       purchases,
       returns,
-      settings
+      settings,
+      profile
     );
   } else if (role === "cashier") {
     // Cashiers bill and can look at / add customers, plus their sales.
-    items.push(pos, dashboard, customers, sales);
+    items.push(pos, dashboard, customers, sales, profile);
   } else if (role === "stock") {
     // Stock manager handles products, customers, and stock in/out.
     // They also review sales, since cancelling gives stock back.
-    items.push(products, dashboard, customers, sales, purchases, returns);
+    items.push(products, dashboard, customers, sales, purchases, returns, profile);
   } else {
     // Unknown role: show only the safe dashboard.
-    items.push(dashboard);
+    items.push(dashboard, profile);
   }
 
   return items;

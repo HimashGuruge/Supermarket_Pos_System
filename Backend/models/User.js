@@ -22,17 +22,21 @@ const userSchema = new mongoose.Schema(
       enum: ["admin", "cashier", "stock"],
       default: "cashier",
     },
+    // Optional profile picture. Stored as a path like
+    // "/uploads/avatar-<id>.png". Empty string = no photo yet.
+    avatar: { type: String, default: "" },
   },
   { timestamps: true } // auto adds createdAt and updatedAt
 );
 
 // Hash the password BEFORE saving. This runs every time a user is
 // created or their password is changed.
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+// (Mongoose 9 pre hooks are async and no longer receive a `next`
+// callback — just return when there is nothing to do.)
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 // Compare a typed password against the stored hash.

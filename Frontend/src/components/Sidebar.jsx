@@ -1,11 +1,13 @@
 // src/components/Sidebar.jsx
-// The side menu. A dark nav rail that only shows the links that
+// The side menu. A light nav rail that only shows the links that
 // belong to the logged-in user's role (see src/lib/roles.js).
 
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { LogOut, X } from "lucide-react";
 import { menuFor } from "../lib/roles";
 import { useAuth } from "../contexts/AuthContext";
+import api, { apiOrigin } from "../lib/api";
 
 // Which small section label each link sits under.
 const sectionOrder = ["Overview", "Manage", "System"];
@@ -18,13 +20,14 @@ const sectionOf = {
   Purchases: "Manage",
   Returns: "Manage",
   Settings: "System",
+  Profile: "System",
 };
 
-// Role badge tones tuned for the dark sidebar.
+// Role badge tones tuned for the light sidebar.
 const roleBadge = {
-  admin: "bg-white/10 text-slate-100",
-  cashier: "bg-indigo-400/20 text-indigo-200",
-  stock: "bg-emerald-400/20 text-emerald-200",
+  admin: "bg-indigo-50 text-indigo-600 ring-indigo-100",
+  cashier: "bg-violet-50 text-violet-600 ring-violet-100",
+  stock: "bg-emerald-50 text-emerald-600 ring-emerald-100",
 };
 
 export default function Sidebar({ open, onClose }) {
@@ -32,24 +35,48 @@ export default function Sidebar({ open, onClose }) {
   const items = menuFor(user?.role);
   const initial = user && user.name ? user.name[0].toUpperCase() : "U";
 
+  // The uploaded store logo (from the Settings page). Shown in the
+  // brand tile; falls back to the "S" letter when none is set.
+  const [logo, setLogo] = useState("");
+  useEffect(() => {
+    let active = true;
+    api
+      .get("/settings")
+      .then((res) => {
+        if (active && res.data && res.data.logo) setLogo(res.data.logo);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 w-64 transform overflow-hidden bg-slate-950 transition-transform duration-300 lg:static lg:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-slate-200/70 bg-card/95 backdrop-blur transition-transform duration-300 lg:static lg:translate-x-0 ${
         open ? "translate-x-0" : "-translate-x-full"
       }`}
     >
-      {/* Soft accent glows behind everything */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_300px_at_20%_-5%,rgb(99_102_241/0.28),transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(500px_320px_at_105%_105%,rgb(139_92_246/0.18),transparent_60%)]" />
-
       <div className="relative flex h-full flex-col">
         {/* Brand */}
-        <div className="flex h-16 items-center gap-3 px-4 pt-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 ring-1 ring-white/20 shadow-card-lg">
-            <span className="text-sm font-bold text-white">S</span>
+        <div className="flex h-16 items-center gap-3 px-4">
+          <div
+            className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl shadow-card ring-1 ring-white/40 ${
+              logo ? "bg-white" : "bg-gradient-to-br from-indigo-500 to-violet-600"
+            }`}
+          >
+            {logo ? (
+              <img
+                src={apiOrigin + logo}
+                alt="Store logo"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-sm font-bold text-white">S</span>
+            )}
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-[15px] font-semibold leading-tight text-white">
+            <h1 className="truncate text-[15px] font-semibold leading-tight text-slate-800">
               Supermarket
             </h1>
             <p className="text-[11px] font-medium leading-none text-slate-400">
@@ -59,7 +86,7 @@ export default function Sidebar({ open, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto -mr-2 rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white lg:hidden"
+            className="ml-auto -mr-2 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 lg:hidden"
             aria-label="Close sidebar"
           >
             <X size={18} />
@@ -73,7 +100,7 @@ export default function Sidebar({ open, onClose }) {
             if (!group.length) return null;
             return (
               <div key={section}>
-                <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                   {section}
                 </p>
                 <div className="space-y-1">
@@ -86,10 +113,10 @@ export default function Sidebar({ open, onClose }) {
                         end={item.end}
                         onClick={onClose}
                         className={({ isActive }) =>
-                          `group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                          `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                             isActive
-                              ? "bg-white/10 text-white"
-                              : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                              ? "bg-indigo-50 text-indigo-700"
+                              : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                           }`
                         }
                       >
@@ -98,17 +125,17 @@ export default function Sidebar({ open, onClose }) {
                             {isActive && (
                               <span
                                 aria-hidden="true"
-                                className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-gradient-to-b from-indigo-400 to-violet-500"
+                                className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-indigo-500"
                               />
                             )}
                             <span
-                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition ${
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
                                 isActive
-                                  ? "bg-white/10 text-white"
-                                  : "bg-white/5 text-slate-400 group-hover:text-slate-200"
+                                  ? "bg-white text-indigo-600 shadow-sm ring-1 ring-indigo-100"
+                                  : "text-slate-400 group-hover:text-slate-600"
                               }`}
                             >
-                              <Icon size={16} strokeWidth={2} />
+                              <Icon size={17} strokeWidth={2} />
                             </span>
                             <span className="truncate">{item.name}</span>
                           </>
@@ -124,18 +151,26 @@ export default function Sidebar({ open, onClose }) {
 
         {/* User card */}
         <div className="px-3 pb-3">
-          <div className="rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
+          <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white ring-1 ring-white/20">
-                {initial}
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white ring-1 ring-white/40">
+                {user?.avatar ? (
+                  <img
+                    src={apiOrigin + user.avatar}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initial
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-white">
+                <p className="truncate text-sm font-medium text-slate-800">
                   {user?.name ?? "User"}
                 </p>
                 <span
-                  className={`mt-0.5 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold capitalize ${
-                    roleBadge[user?.role] ?? "bg-white/10 text-slate-300"
+                  className={`mt-0.5 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold capitalize ring-1 ${
+                    roleBadge[user?.role] ?? "bg-slate-100 text-slate-500 ring-slate-200"
                   }`}
                 >
                   {user?.role ?? "user"}
@@ -144,7 +179,7 @@ export default function Sidebar({ open, onClose }) {
               <button
                 type="button"
                 onClick={logout}
-                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white hover:text-slate-600"
                 aria-label="Log out"
               >
                 <LogOut size={16} />

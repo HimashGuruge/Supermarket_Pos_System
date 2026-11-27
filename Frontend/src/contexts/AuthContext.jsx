@@ -66,6 +66,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  // Re-fetch the current user from the backend. Used after the
+  // profile picture changes so the avatar updates everywhere.
+  async function refreshUser() {
+    try {
+      const res = await api.get("/auth/me");
+      setUser(res.data.user);
+      return res.data.user;
+    } catch {
+      return null;
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -74,6 +86,7 @@ export function AuthProvider({ children }) {
         checking,
         login,
         logout,
+        refreshUser,
       }}
     >
       {children}

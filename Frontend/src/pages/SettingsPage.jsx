@@ -11,8 +11,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { Store, Image, Percent, Receipt, Package, Save } from "lucide-react";
-import api, { errorMessage } from "../lib/api";
+import { Store, Image, Percent, Receipt, Package, Save, Upload } from "lucide-react";
+import api, { errorMessage, apiOrigin } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
@@ -158,9 +158,9 @@ export default function SettingsPage() {
           <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-surface">
             {logoUrl ? (
               <img
-                src={logoUrl}
+                src={apiOrigin + logoUrl}
                 alt="Store logo"
-                className="h-full w-full object-contain"
+                className="h-full w-full object-cover"
               />
             ) : (
               <Image size={36} className="text-slate-300" />
@@ -171,12 +171,20 @@ export default function SettingsPage() {
               PNG, JPG, GIF, WEBP or SVG, max 2 MB. Replaces the current logo.
             </p>
             <input
+              id="logo-file"
               ref={fileRef}
               type="file"
               accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
               onChange={onPickLogo}
-              className="text-sm text-slate-600"
+              className="sr-only"
             />
+            <label
+              htmlFor="logo-file"
+              className="inline-flex cursor-pointer select-none items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              <Upload size={16} />
+              Choose logo
+            </label>
             {logoFile && (
               <p className="text-xs font-medium text-indigo-600">
                 {logoFile.name} ({Math.round(logoFile.size / 1024)} KB)

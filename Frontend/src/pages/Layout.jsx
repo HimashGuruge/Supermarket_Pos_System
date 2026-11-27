@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Bell, Menu, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 
 const titles = {
@@ -27,7 +27,7 @@ export default function Layout() {
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
+          className="fixed inset-0 z-30 bg-slate-900/30 lg:hidden"
         />
       )}
 
@@ -64,16 +64,6 @@ export default function Layout() {
             </div>
           </div>
 
-          <div className="ml-auto">
-            <button
-              type="button"
-              className="relative rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-              aria-label="Notifications"
-            >
-              <Bell size={20} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-card" />
-            </button>
-          </div>
         </header>
 
         {/* Page Content */}
